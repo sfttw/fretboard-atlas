@@ -171,40 +171,11 @@ function drawChord(parent, chord, index, notes) {
     grid.outerHTML = '<p class="empty">No matching shapes for this chord.</p>';
     return;
   }
-  let shown = 0;
-  const more = document.createElement("button");
-  more.className = "more";
-  const less = document.createElement("button");
-  less.className = "more";
-  less.textContent = "Show less shapes";
-  less.style.marginInlineStart = ".5rem";
-  less.hidden = true;
-  function appendShapes(count) {
-    const end = Math.min(shown + count, shapes.length);
-    grid.insertAdjacentHTML("beforeend", shapes.slice(shown, end).map(shape => diagram(shape, notes, chord)).join(""));
-    const added = Array.from(grid.children).slice(shown);
-    added.forEach((card, i) => {
-      const shape = shapes[shown + i];
-      const button = card.querySelector("button");
-      button.onclick = () => play(shape.frets).catch(() => { button.textContent = "Audio unavailable"; });
-    });
-    shown = end;
-    more.textContent = "Show more shapes (" + (shapes.length - shown) + ")";
-    more.hidden = shown === shapes.length;
-    less.hidden = shown <= pageSize;
-    return added[0];
-  }
-  appendShapes(pageSize);
-  more.onclick = () => appendShapes(24)?.querySelector("button").focus();
-  less.onclick = () => {
-    Array.from(grid.children).slice(pageSize).forEach(card => card.remove());
-    shown = pageSize;
-    more.textContent = "Show more shapes (" + (shapes.length - shown) + ")";
-    more.hidden = false;
-    less.hidden = true;
-    more.focus();
-  };
-  section.append(more, less);
+  const visibleShapes = shapes.slice(0, pageSize);
+  grid.innerHTML = visibleShapes.map(shape => diagram(shape, notes, chord)).join("");
+  grid.querySelectorAll(".listen").forEach((button, i) => {
+    button.onclick = () => play(visibleShapes[i].frets).catch(() => { button.textContent = "Audio unavailable"; });
+  });
 }
 
 function render() {
