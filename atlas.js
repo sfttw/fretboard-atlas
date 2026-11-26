@@ -106,8 +106,78 @@ function voicings(notes, kind) {
   return result;
 }
 
-function diagram(shape, notes, chord) {
-  const start = Math.max(1, shape.frets.some(fret => fret > 4) ? shape.base : 1);
+const commonFingers = {
+  "x32010": "032010", "332010": "432010", "xx0232": "000132",
+  "xx0231": "000231", "022100": "023100", "022000": "023000",
+  "xx3211": "003211", "133211": "134211", "320003": "320004",
+  "320033": "210034", "x02220": "001230", "x02210": "002310",
+  "x2343x": "012430",
+};
+
+const movableFingers = {
+  "0,2,2,1,0,0": "134211", "0,2,2,0,0,0": "134111",
+  "x,0,2,2,2,0": "013331", "x,0,2,2,1,0": "013421",
+  "x,3,2,0,1,0": "043121", "x,x,0,2,3,2": "001243",
+  "x,x,0,2,3,1": "001342", "x,0,1,2,1,x": "012430",
+  "x,x,0,1,x,1": "001203", "3,2,0,0,0,3": "431112",
+};
+
+function fingering(frets) {
+  const openShape = frets.map(fret => fret < 0 ? "x" : fret).join("");
+  if (frets.every(fret => fret < 10) && commonFingers[openShape]) {
+    return Array.from(commonFingers[openShape], Number);
+  }
+  const pressed = frets.map((fret, string) => ({fret, string})).filter(note => note.fret > 0);
+  const base = Math.min(...pressed.map(note => note.fret));
+  const relative = frets.map(fret => fret < 0 ? "x" : fret - base).join();
+  if (!frets.includes(0) && movableFingers[relative]) {
+    return Array.from(movableFingers[relative], Number);
+  }
+  pressed.sort((a, b) => a.fret - b.fret || a.string - b.string);
+  const groups = [];
+  const fingers = Array(6).fill(0);
+
+  function assign(index) {
+    if (index === pressed.length) return true;
+    const {fret, string} = pressed[index];
+    if (groups.length < 4) {
+      groups.push({fret, string});
+      fingers[string] = groups.length;
+      if (assign(index + 1)) return true;
+      groups.pop();
+    }
+    for (const [i, first] of groups.entries()) {
+      if (first.fret !== fret || frets.slice(first.string, string + 1).some(value => value < fret)) continue;
+      fingers[string] = i + 1;
+      if (assign(index + 1)) return true;
+    }
+    fingers[string] = 0;
+    return false;
+  }
+
+  return assign(0) ? fingers : null;
+}
+
+const fingerDialog = document.querySelector("#fingering");
+const fingerTitle = document.querySelector("#finger-title");
+const fingerShape = document.querySelector("#finger-shape");
+const fingerDiagram = document.querySelector("#finger-diagram");
+const fingerHelp = document.querySelector("#finger-help");
+document.querySelector("#finger-close").onclick = () => fingerDialog.close();
+fingerDialog.addEventListener("click", event => {
+  if (event.target === fingerDialog) fingerDialog.close();
+});
+
+function showFingering(shape, notes, chord, fingers) {
+  fingerTitle.textContent = chord;
+  fingerShape.textContent = shape.name;
+  fingerDiagram.innerHTML = drawDiagram(shape, notes, chord, true, fingers);
+  fingerHelp.textContent = "1 Index · 2 Middle · 3 Ring · 4 Pinky";
+  fingerDialog.showModal();
+}
+
+function drawDiagram(shape, notes, chord, enlarged = false, fingers = null) {
+  const start = Math.max(1, enlarged || shape.frets.some(fret => fret > 4) ? shape.base : 1);
   const x = i => 22 + 15 * i;
   const y = 23;
   let drawing = "";
@@ -116,21 +186,43 @@ function diagram(shape, notes, chord) {
     drawing += '<line x1="22" x2="97" y1="' + level + '" y2="' + level + '" stroke-width="' + (start === 1 && row === 0 ? 3 : 1) + '"/>';
   }
   if (start > 1) drawing += '<text x="9" y="34" class="fret-number">' + start + '</text>';
-  shape.frets.forEach((fret, i) => {
+  shape.frets.forEach((_, i) => {
     const col = x(i);
     drawing += '<line x1="' + col + '" x2="' + col + '" y1="23" y2="87"/>';
-    drawing += '<text x="' + col + '" y="104">' + strings[i] + '</text>';
+  });
+  const center = fret => y + (fret - start + .5) * 16;
+  if (fingers) {
+    for (let finger = 1; finger <= 4; finger++) {
+      const first = fingers.indexOf(finger);
+      const last = fingers.lastIndexOf(finger);
+      if (first < 0 || first === last) continue;
+      const level = center(shape.frets[first]);
+      drawing += `<line x1="${x(first)}" x2="${x(last)}" y1="${level}" y2="${level}" stroke="#a2b5a6" stroke-width="4"/>`;
+    }
+  }
+  shape.frets.forEach((fret, i) => {
+    const col = x(i);
+    const label = enlarged ? (fret < 0 ? "×" : notes.find(note => pitch(note) === (tuning[i] + fret) % 12)) : strings[i];
+    drawing += `<text x="${col}" y="104">${label}</text>`;
     const root = (tuning[i] + fret) % 12 === pitch(notes[0]);
     if (fret === -1) drawing += '<text x="' + col + '" y="15">×</text>';
     else if (fret === 0) drawing += '<circle cx="' + col + '" cy="12" r="3.6" fill="none" stroke="' + (root ? '#205340' : '#30352f') + '" stroke-width="' + (root ? 2 : 1) + '"/>';
-    else drawing += '<circle cx="' + col + '" cy="' + (y + (fret - start + .5) * 16) + '" r="5.3" fill="' + (root ? '#205340' : '#30352f') + '" stroke="none"/>';
+    else drawing += '<circle cx="' + col + '" cy="' + center(fret) + '" r="5.3" fill="' + (root ? '#205340' : '#30352f') + '" stroke="none"/>';
+    if (fingers?.[i]) {
+      drawing += `<text x="${col}" y="${center(fret)}" fill="#fff" font-size="7.3" font-weight="700" dominant-baseline="central">${fingers[i]}</text>`;
+    }
   });
+  const description = shape.frets.map((fret, i) => strings[i] + " " + (fret < 0 ? "muted" : fret === 0 ? "open" : "fret " + fret + (fingers ? ", finger " + fingers[i] : ""))).join(", ");
+  return '<svg viewBox="0 0 119 108" role="img" aria-label="' + chord + ', ' + description + '" stroke="#5b6359" text-anchor="middle" font-family="system-ui" font-size="9" fill="#30352f">' +
+    '<style>text{stroke:none}</style>' + drawing + '</svg>';
+}
+
+function diagram(shape, notes, chord) {
   const tab = shape.frets.map(fret => fret < 0 ? "×" : fret).join(" · ");
-  const description = shape.frets.map((fret, i) => strings[i] + " " + (fret < 0 ? "muted" : fret === 0 ? "open" : "fret " + fret)).join(", ");
   const position = shape.inversion ? " · " + (shape.inversion === 1 ? "1st inversion" : "2nd inversion") : "";
-  return '<figure class="shape"><svg viewBox="0 0 119 108" role="img" aria-label="' + chord + ', ' + description + '" stroke="#5b6359" text-anchor="middle" font-family="system-ui" font-size="9" fill="#30352f">' +
-    '<style>text{stroke:none}</style>' + drawing + '</svg><figcaption>' + shape.name + position +
-    '</figcaption><span class="tab">' + tab + '</span><button class="listen" aria-label="Listen to ' + chord + ', ' + description + '">▷ Listen</button></figure>';
+  return '<figure class="shape"><button type="button" class="shape-preview" aria-haspopup="dialog" aria-label="Enlarge ' +
+    chord + ' diagram, ' + tab + '">' + drawDiagram(shape, notes, chord) + '</button><figcaption>' + shape.name + position +
+    '</figcaption><span class="tab">' + tab + '</span><button class="listen" aria-label="Listen to ' + chord + ', ' + tab + '">▷ Listen</button></figure>';
 }
 
 async function play(frets) {
@@ -167,14 +259,24 @@ function drawChord(parent, chord, index, notes) {
   const shapes = voicings(notes, suffixes[index]).filter(shape =>
     filter === "all" || shape.open === (filter === "open"));
   const grid = section.querySelector(".shapes");
-  if (!shapes.length) {
+  const visibleShapes = [];
+  for (const shape of shapes) {
+    const fingers = fingering(shape.frets);
+    if (!fingers) continue;
+    visibleShapes.push({shape, fingers});
+    if (visibleShapes.length === pageSize) break;
+  }
+  if (!visibleShapes.length) {
     grid.outerHTML = '<p class="empty">No matching shapes for this chord.</p>';
     return;
   }
-  const visibleShapes = shapes.slice(0, pageSize);
-  grid.innerHTML = visibleShapes.map(shape => diagram(shape, notes, chord)).join("");
+  grid.innerHTML = visibleShapes.map(({shape}) => diagram(shape, notes, chord)).join("");
+  grid.querySelectorAll(".shape-preview").forEach((button, i) => {
+    const {shape, fingers} = visibleShapes[i];
+    button.onclick = () => showFingering(shape, notes, chord, fingers);
+  });
   grid.querySelectorAll(".listen").forEach((button, i) => {
-    button.onclick = () => play(visibleShapes[i].frets).catch(() => { button.textContent = "Audio unavailable"; });
+    button.onclick = () => play(visibleShapes[i].shape.frets).catch(() => { button.textContent = "Audio unavailable"; });
   });
 }
 
