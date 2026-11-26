@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Explore guitar chords in every major key, with fretboard diagrams and playable voicings.">
+<title>Fretboard Atlas — Guitar Chords by Key</title>
+<link rel="stylesheet" href="style.css">
+<script src="atlas.js" defer></script>
+</head>
+<body>
+<header class="top"><div class="wrap bar"><a class="brand" href="./"><span class="mark" aria-hidden="true">▦</span> Fretboard Atlas</a><span class="tuning">STANDARD TUNING <strong>E A D G B E</strong></span></div></header>
+<main class="wrap">
+<section class="intro">
+<div><p class="eyebrow">GUITAR CHORD EXPLORER</p><h1>Guitar chords<br><em>by key.</em></h1><p class="intro-copy">Pick a major key, then explore different ways to play its seven chords across the fretboard.</p></div>
+<div class="hero-fret" aria-hidden="true"><span>●</span><span>●</span><span>●</span><span>●</span><span>●</span></div>
+</section>
+<section class="picker" aria-labelledby="pick-label">
+<h2 id="pick-label">Choose a major key</h2><div id="keys" class="keys" role="group" aria-label="Major keys"></div>
+</section>
+<section class="results" aria-labelledby="key-title">
+<div class="key-head"><div><p class="eyebrow">DIATONIC CHORDS</p><h2 id="key-title"></h2></div><p id="scale"></p></div>
+<nav id="degrees" aria-label="Jump to a chord"></nav>
+<div class="tools"><div role="group" aria-label="Filter voicings" id="filters"><button data-filter="all" aria-pressed="true">All shapes</button><button data-filter="open" aria-pressed="false">Open strings</button><button data-filter="movable" aria-pressed="false">Movable</button></div><p class="legend"><span><b>○</b> Open</span><span><b>×</b> Mute</span><span><b class="root-dot">●</b> Root</span></p></div>
+<div id="chords"></div>
+</section>
+</main>
+<footer class="wrap">Standard tuning · Voicings through fret 22 · Strings shown low to high</footer>
+</body>
+</html>
