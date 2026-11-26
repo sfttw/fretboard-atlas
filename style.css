@@ -62,3 +62,14 @@ h1 em{color:var(--green);font-weight:400}
 .empty,footer{color:var(--muted);font-size:13px;margin-bottom:0}
 footer{padding:15px 0 30px}
 @media(max-width:680px){.wrap{width:calc(100% - 28px)}.bar{min-height:56px}.tuning{font-size:0}.tuning strong{font-size:10px}.intro{padding:33px 0 28px}.hero-fret{display:none}.intro-copy{font-size:14px}.picker{padding:15px}.keys{grid-template-columns:repeat(6,1fr)}.keys button{min-height:40px}.results{margin-top:25px}#degrees{gap:4px}#degrees a{flex-direction:column;gap:2px;font-size:13px;min-height:48px}.chord{padding:12px}.shapes{grid-template-columns:repeat(auto-fill,minmax(128px,1fr))}}
+.shape-preview{display:block;padding:0;background:transparent;border:0;border-radius:6px;cursor:zoom-in}
+.shape-preview:hover{background:var(--mint)}
+#fingering{width:min(420px,calc(100% - 28px));max-height:calc(100% - 28px);padding:22px;border:1px solid var(--line);border-radius:15px;background:var(--white);color:var(--ink);box-shadow:0 20px 75px #15261c44}
+#fingering::backdrop{background:#142019a6}
+.finger-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+#finger-title{font-size:30px;line-height:1;margin:0 0 6px}
+#finger-shape,#finger-help{color:var(--muted);font-size:14px;margin:0}
+#finger-close{border:1px solid var(--line);background:var(--paper);border-radius:8px;width:38px;height:38px;font-size:24px;line-height:1}
+#finger-close:hover{background:var(--mint)}
+#finger-diagram svg{display:block;width:100%;height:auto;max-height:48vh;margin:10px auto}
+#finger-help{text-align:center}
